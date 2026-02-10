@@ -1,30 +1,36 @@
 import { create } from "zustand";
 import sampleData from "../data/sheet.json";
 
-const STORAGE_KEY = "sheet-data-v2"; 
-
-const getJSONData = () => {
-    // This handles both [{},{}] and { topics: [{},{}] }
-    if (Array.isArray(sampleData)) return sampleData;
-    if (sampleData && sampleData.topics) return sampleData.topics;
-    return [];
-};
+const STORAGE_KEY = "question-sheet-data";
 
 const loadInitialData = () => {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        const fileData = getJSONData();
+  // 1. Get data from JSON file
+  let fileData = [];
+  if (Array.isArray(sampleData)) {
+    fileData = sampleData;
+  } else if (sampleData && sampleData.topics) {
+    fileData = sampleData.topics;
+  }
 
-        // If nothing is stored, OR storage is empty, ALWAYS return file data
-        if (!stored) return fileData;
-        
-        const parsed = JSON.parse(stored);
-        if (!Array.isArray(parsed) || parsed.length === 0) return fileData;
-
-        return parsed;
-    } catch (e) {
-        return getJSONData();
+  // 2. Check LocalStorage
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+      console.log("No storage found. Loading from JSON file.");
+      return fileData;
     }
+    
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      console.log("Loading from LocalStorage.");
+      return parsed;
+    }
+    
+    console.log("Storage was empty/invalid. Loading from JSON file.");
+    return fileData;
+  } catch (e) {
+    return fileData;
+  }
 };
 
 const useSheetStore = create((set, get) => ({
