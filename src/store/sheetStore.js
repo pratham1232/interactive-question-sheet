@@ -12,16 +12,25 @@ const load = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
 
-    // ✅ FIRST TIME USER → show sample data
+    // ✅ Case 1: No storage → Load the topics ARRAY from sampleData
     if (!stored) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
-      return sampleData;
+      const initialTopics = sampleData.topics || []; 
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialTopics));
+      return initialTopics;
     }
 
-    // ✅ Existing user → load saved progress
-    return JSON.parse(stored);
-  } catch {
-    return sampleData;
+    const parsed = JSON.parse(stored);
+
+    // ✅ Case 2: If parsed data is an object instead of an array, fix it
+    // (This happens if you previously saved the whole sampleData object)
+    if (!Array.isArray(parsed)) {
+      return parsed.topics || [];
+    }
+
+    return parsed;
+  } catch (error) {
+    console.error("Load error:", error);
+    return sampleData.topics || []; // Return array on error
   }
 };
 
