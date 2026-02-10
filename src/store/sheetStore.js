@@ -3,6 +3,7 @@ import sampleData from "../data/sheet.json";
 
 const STORAGE_KEY = "question-sheet-data";
 
+// Helper to save data and return it
 const save = (topics) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(topics));
   return topics;
@@ -11,29 +12,35 @@ const save = (topics) => {
 const load = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
+    
+    // 1. Determine exactly what the sample topics are
+    // This handles both cases: [{...}] or { topics: [{...}] }
+    const defaultTopics = Array.isArray(sampleData) 
+      ? sampleData 
+      : (sampleData.topics || []);
 
-    // ✅ Case 1: No storage → Load the topics ARRAY from sampleData
+    // 2. If nothing is in storage, load samples immediately
     if (!stored) {
-      const initialTopics = sampleData.topics || []; 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialTopics));
-      return initialTopics;
+      console.log("No storage found. Loading sample data...");
+      return save(defaultTopics);
     }
 
     const parsed = JSON.parse(stored);
 
-    // ✅ Case 2: If parsed data is an object instead of an array, fix it
-    // (This happens if you previously saved the whole sampleData object)
-    if (!Array.isArray(parsed)) {
-      return parsed.topics || [];
+    // 3. If storage exists but is empty or not an array, reset to samples
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      console.log("Storage empty or invalid. Resetting to samples...");
+      return save(defaultTopics);
     }
 
+    // 4. Everything is fine, return saved data
     return parsed;
   } catch (error) {
-    console.error("Load error:", error);
-    return sampleData.topics || []; // Return array on error
+    console.error("Critical Load Error, falling back to samples:", error);
+    // Fallback if JSON.parse fails
+    return Array.isArray(sampleData) ? sampleData : (sampleData.topics || []);
   }
 };
-
 
 
 const useSheetStore = create((set, get) => ({
