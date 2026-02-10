@@ -10,38 +10,43 @@ const save = (topics) => {
 };
 
 const load = () => {
+  // 1. Get topics from your JSON file (Safe check for structure)
+  const fileTopics = Array.isArray(sampleData) ? sampleData : (sampleData.topics || []);
+
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    
-    // 1. Determine exactly what the sample topics are
-    // This handles both cases: [{...}] or { topics: [{...}] }
-    const defaultTopics = Array.isArray(sampleData) 
-      ? sampleData 
-      : (sampleData.topics || []);
 
-    // 2. If nothing is in storage, load samples immediately
+    // 2. CONDITION: Nothing in storage? Return file data immediately.
     if (!stored) {
-      console.log("No storage found. Loading sample data...");
-      return save(defaultTopics);
+      console.log("Storage empty: Loading file data.");
+      return save(fileTopics);
     }
 
     const parsed = JSON.parse(stored);
 
-    // 3. If storage exists but is empty or not an array, reset to samples
+    // 3. CONDITION: Storage is an empty list or broken? Return file data.
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      console.log("Storage empty or invalid. Resetting to samples...");
-      return save(defaultTopics);
+      console.log("Storage invalid: Resetting to file data.");
+      return save(fileTopics);
     }
 
-    // 4. Everything is fine, return saved data
-    return parsed;
-  } catch (error) {
-    console.error("Critical Load Error, falling back to samples:", error);
-    // Fallback if JSON.parse fails
-    return Array.isArray(sampleData) ? sampleData : (sampleData.topics || []);
+    // 4. CONDITION: "Render First" logic. 
+    // If you added a NEW topic to your JSON file, this merges it into your existing progress
+    const merged = [...parsed];
+    fileTopics.forEach(fileTopic => {
+      const exists = merged.some(t => t.id === fileTopic.id || t.title === fileTopic.title);
+      if (!exists) {
+        merged.push(fileTopic);
+      }
+    });
+
+    console.log("Data loaded successfully.");
+    return merged;
+  } catch (err) {
+    console.error("Load error, falling back to file:", err);
+    return fileTopics;
   }
 };
-
 
 const useSheetStore = create((set, get) => ({
   /* ======================
