@@ -1,7 +1,47 @@
 import { create } from "zustand";
 import sampleData from "../data/sheet.json";
 
-const STORAGE_KEY = "question-sheet-data";
+const STORAGE_KEY = "question-sheet-data-v2"; // Changed key to force a fresh load
+
+// 1. HELPER: Transform flat JSON into the Topic > SubTopic > Question hierarchy
+const transformData = () => {
+  const rawQuestions = sampleData?.data?.questions || [];
+  const topicsMap = {};
+
+  rawQuestions.forEach((q) => {
+    // Create Topic if it doesn't exist
+    if (!topicsMap[q.topic]) {
+      topicsMap[q.topic] = {
+        id: `topic-${q.topic.replace(/\s+/g, '-').toLowerCase()}`,
+        title: q.topic,
+        subTopics: {},
+      };
+    }
+
+    // Create SubTopic inside Topic if it doesn't exist
+    if (!topicsMap[q.topic].subTopics[q.subTopic]) {
+      topicsMap[q.topic].subTopics[q.subTopic] = {
+        id: `sub-${q._id}`,
+        title: q.subTopic,
+        questions: [],
+      };
+    }
+
+    // Push Question into SubTopic
+    topicsMap[q.topic].subTopics[q.subTopic].questions.push({
+      id: q._id,
+      title: q.title,
+      solved: q.isSolved || false,
+      resource: q.resource,
+    });
+  });
+
+  // Convert the objects back into arrays for the Store
+  return Object.values(topicsMap).map((topic) => ({
+    ...topic,
+    subTopics: Object.values(topic.subTopics),
+  }));
+};
 
 const save = (topics) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(topics));
@@ -11,27 +51,23 @@ const save = (topics) => {
 const load = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
+    const initialData = transformData();
 
-    // ✅ Case 1: No storage at all → load sample
+    // If no storage, load the transformed JSON
     if (!stored) {
-      const topics = sampleData.topics || [];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(topics));
-      return topics;
+      return save(initialData);
     }
 
     const parsed = JSON.parse(stored);
 
-    // ✅ Case 2: Storage exists but empty → load sample
+    // If storage is empty, load the transformed JSON
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      const topics = sampleData.topics || [];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(topics));
-      return topics;
+      return save(initialData);
     }
 
-    // ✅ Case 3: Valid user data → use it
     return parsed;
-  } catch {
-    return [];
+  } catch (e) {
+    return transformData();
   }
 };
 
