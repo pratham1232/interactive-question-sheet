@@ -1,34 +1,30 @@
 import { create } from "zustand";
 import sampleData from "../data/sheet.json";
 
-const STORAGE_KEY = "question-sheet-data";
+const STORAGE_KEY = "sheet-data-v2"; 
 
-const getFileTopics = () => {
-  if (!sampleData) return [];
-  if (Array.isArray(sampleData)) return sampleData;
-  if (sampleData.topics && Array.isArray(sampleData.topics)) return sampleData.topics;
-  return [];
+const getJSONData = () => {
+    // This handles both [{},{}] and { topics: [{},{}] }
+    if (Array.isArray(sampleData)) return sampleData;
+    if (sampleData && sampleData.topics) return sampleData.topics;
+    return [];
 };
 
-const load = () => {
-  const fileData = getFileTopics();
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    
-    // If nothing in storage, use file
-    if (!stored) return fileData;
+const loadInitialData = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        const fileData = getJSONData();
 
-    const parsed = JSON.parse(stored);
+        // If nothing is stored, OR storage is empty, ALWAYS return file data
+        if (!stored) return fileData;
+        
+        const parsed = JSON.parse(stored);
+        if (!Array.isArray(parsed) || parsed.length === 0) return fileData;
 
-    // If storage is an empty array but file has data, FORCE the file data
-    if (Array.isArray(parsed) && parsed.length === 0 && fileData.length > 0) {
-      return fileData;
+        return parsed;
+    } catch (e) {
+        return getJSONData();
     }
-
-    return Array.isArray(parsed) ? parsed : fileData;
-  } catch (e) {
-    return fileData;
-  }
 };
 
 const useSheetStore = create((set, get) => ({
