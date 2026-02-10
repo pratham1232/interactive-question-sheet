@@ -3,48 +3,31 @@ import sampleData from "../data/sheet.json";
 
 const STORAGE_KEY = "question-sheet-data";
 
-// Helper to save data and return it
-const save = (topics) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(topics));
-  return topics;
+const getFileTopics = () => {
+  if (!sampleData) return [];
+  if (Array.isArray(sampleData)) return sampleData;
+  if (sampleData.topics && Array.isArray(sampleData.topics)) return sampleData.topics;
+  return [];
 };
 
 const load = () => {
-  // 1. Get topics from your JSON file (Safe check for structure)
-  const fileTopics = Array.isArray(sampleData) ? sampleData : (sampleData.topics || []);
-
+  const fileData = getFileTopics();
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-
-    // 2. CONDITION: Nothing in storage? Return file data immediately.
-    if (!stored) {
-      console.log("Storage empty: Loading file data.");
-      return save(fileTopics);
-    }
+    
+    // If nothing in storage, use file
+    if (!stored) return fileData;
 
     const parsed = JSON.parse(stored);
 
-    // 3. CONDITION: Storage is an empty list or broken? Return file data.
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      console.log("Storage invalid: Resetting to file data.");
-      return save(fileTopics);
+    // If storage is an empty array but file has data, FORCE the file data
+    if (Array.isArray(parsed) && parsed.length === 0 && fileData.length > 0) {
+      return fileData;
     }
 
-    // 4. CONDITION: "Render First" logic. 
-    // If you added a NEW topic to your JSON file, this merges it into your existing progress
-    const merged = [...parsed];
-    fileTopics.forEach(fileTopic => {
-      const exists = merged.some(t => t.id === fileTopic.id || t.title === fileTopic.title);
-      if (!exists) {
-        merged.push(fileTopic);
-      }
-    });
-
-    console.log("Data loaded successfully.");
-    return merged;
-  } catch (err) {
-    console.error("Load error, falling back to file:", err);
-    return fileTopics;
+    return Array.isArray(parsed) ? parsed : fileData;
+  } catch (e) {
+    return fileData;
   }
 };
 
