@@ -12,26 +12,16 @@ const load = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
 
-    // ✅ Case 1: No storage at all → load sample
+    // ✅ FIRST TIME USER → show sample data
     if (!stored) {
-      const topics = sampleData.topics || [];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(topics));
-      return topics;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
+      return sampleData;
     }
 
-    const parsed = JSON.parse(stored);
-
-    // ✅ Case 2: Storage exists but empty → load sample
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      const topics = sampleData.topics || [];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(topics));
-      return topics;
-    }
-
-    // ✅ Case 3: Valid user data → use it
-    return parsed;
+    // ✅ Existing user → load saved progress
+    return JSON.parse(stored);
   } catch {
-    return [];
+    return sampleData;
   }
 };
 
